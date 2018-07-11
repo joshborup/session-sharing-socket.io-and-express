@@ -1,53 +1,59 @@
-const express = require('express');
+const express = require('express')
 const app = express();
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
-const bodyParser = require('body-parser');
-app.use(bodyParser.json());
+const server  = require("http").createServer(app)
+const io = require("socket.io")(server)
+const bodyParser = require('body-parser')
+app.use(bodyParser.json())
 
-const userSession = require('express-session');
 
- const session = userSession({
-            secret: 'g',
-            resave: false,
-            saveUninitialized: true,
-            cookie: { maxAge: 14 * 24 * 1000}           
-})
-
-const sharedSession = require('express-socket.io-session');
-
+let id = 0;
+const session = require("express-session")({
+    secret: "my-secret",
+    resave: false,
+    saveUninitialized: false
+  })
+const sharedsession = require("express-socket.io-session");
+ 
+ 
+// Attach session
 app.use(session);
+ 
 
 
-io.use(sharedSession(session, {
-    autoSave:true
-}));
-
-app.post('/login', function (req, res) {
+app.post('/login', (req, res) => {
     const { username } = req.body;
+    req.session.user = {
+        id: id,
+        username: username
+    };
 
-    
-    req.session.user = username;
-      
-    console.log('username ' , {username: req.session.user})
-    res.status(200).json({username: req.session.user});
+    id++
+    console.log(req.session.user)
+    res.json(req.session.user);
 });
 
-
-io.sockets.on('connection', (socket) => {
-
-    
-    socket.on('message', (message) => {
-        let socketSession = JSON.parse(socket.handshake.sessionStore.sessions[Object.keys(socket.handshake.sessionStore.sessions)])
-        console.log(socketSession.user)
-        io.emit('message', {username: socketSession.user, message: message})
-    })
-
-    
-
-    socket.on('disconnect', () => {
-        console.log('disconnected')    
-    })
+app.post('/api/logout', (req, res) => {
+    req.session.destroy()
+    res.end();
 })
 
-server.listen(4000, () => console.log(`listening on port 4000`));
+app.get('/api/user', (req, res) => {
+    res.status(200).json({user: req.session.user})
+})
+// Share session with io sockets
+ 
+io.use(sharedsession(session));
+ 
+io.on("connection", (socket) => {
+
+    socket.on("message", (message) => {
+        if(message && socket.handshake.session.user){
+        socket.handshake.session
+        socket.handshake.session.save();
+        io.emit('message', {username: socket.handshake.session.user.username,  message: message});   
+        }     
+    });        
+});
+ 
+server.listen(4000);
+console.log('listening on port 4000')
