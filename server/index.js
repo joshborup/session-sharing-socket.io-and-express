@@ -68,6 +68,7 @@ io.sockets.on("connection", (socket) => {
     })
     //event that run when messages are sent
     socket.on("message", (messageObj) => {
+        //check to see if there is a message 
         if(messageObj && socket.handshake.session.user){
         io.in(messageObj.room).emit('message', {user: socket.handshake.session.user,  message: messageObj.message, id:  messageID}); 
         messageID++  
