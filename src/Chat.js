@@ -2,27 +2,30 @@ import React, { Component } from 'react';
 import socketIOClient from 'socket.io-client';
 import {Link} from 'react-router-dom';
 import axios from 'axios';
+const socket = socketIOClient();
 export default class Chat extends Component {
-    constructor(){
-        super()
+    constructor(props){
+        super(props)
         this.state = {
           messages: [],
-          message:''
+          message:'',
+          room: this.props.match.params.room
         }
-        const socket = socketIOClient();
+        
         socket.on('message', (messageObj) => {
-          const {message, username} = messageObj;
-
+          const {message, user} = messageObj;
+            console.log(messageObj);
           //set state with the old message array with the new message added to the end
           this.setState({
-              messages: [...this.state.messages, {message: message, username: username}]
+              messages: [...this.state.messages, {message: message, user: user, id: messageObj.id}]
           });
         })
       }
 
-      componentWillMount(){
+      componentDidMount(){
           axios.get('/api/user').then(response => {
-              console.log(response)
+            console.log(response)
+            socket.emit('room_connection', {room: this.state.room, user: response.data});
           })
       }
     
@@ -35,9 +38,9 @@ export default class Chat extends Component {
 
     
       submitMessage = () => {
-        const socket = socketIOClient();
         if(this.state.message){
-            socket.emit("message", this.state.message) 
+            socket.emit("message", {message: this.state.message, room: this.props.match.params.room}) 
+            console.log(this.state.message);
             this.setState({
               message: ''
             })
@@ -53,14 +56,14 @@ export default class Chat extends Component {
     
     render() {
         let messages = this.state.messages.map(message => {
-            return <div key={message.id}>{message.username}: {message.message} </div>
+            return <div key={message.id}>{message.user.username} : {message.message}</div>
         })
         return (
             <div>
                 {messages}
-                Write a message messages:
+                Write a message:
                 <input onChange={(e) => this.messageChangeHandler(e.target.value)} value={this.state.message}/>
-                <button onClick={this.submitMessage}>Submit</button>
+                <button onClick={() => this.submitMessage()}>Submit</button>
                 <button onClick={()=> this.logout()}>logout</button>
                 <Link to='/sessioncheck'><button>sessionChecker Component</button></Link>
             </div>

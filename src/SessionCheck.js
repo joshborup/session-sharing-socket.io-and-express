@@ -5,7 +5,8 @@ export default class SessionCheck extends Component {
     constructor(){
         super()
         this.state = {
-            user:''
+            user:'',
+            test:''
         }
     }
 
@@ -17,11 +18,23 @@ export default class SessionCheck extends Component {
         })
     }
 
+    addToSession = () => {
+        axios.post('/api/user', {test: this.state.test}).then(response => {
+            console.log(response)
+            this.setState({
+                user: response.data,
+                test: ''
+            })
+        })
+    }
+
     render() {
         return (
             <div>
                 {JSON.stringify(this.state.user)}
-                <Link to='/chat'><button>back to chat</button></Link>
+                <input onChange={(e)=>this.setState({test:e.target.value})} value={this.state.test}/>
+                <button onClick={()=> this.addToSession()}>submit</button>
+                <Link to='/chat/chatroom'><button>back to chat</button></Link>
             </div>
         );
     }

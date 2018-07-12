@@ -1,0 +1,1 @@
+# Sharing sessions between Socket.IO and Express
